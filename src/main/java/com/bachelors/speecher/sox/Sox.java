@@ -1,4 +1,5 @@
-package main.java.com.bachelors.speecher.sox;
+package com.bachelors.speecher.sox;
+
 
 import java.io.*;
 import java.util.ArrayList;
