@@ -1,4 +1,4 @@
-package main.java.com.bachelors.speecher.service.asterisk;
+package com.bachelors.speecher.service.asterisk;
 
 import org.asteriskjava.fastagi.AsyncAgiServer;
 import org.springframework.beans.factory.InitializingBean;
