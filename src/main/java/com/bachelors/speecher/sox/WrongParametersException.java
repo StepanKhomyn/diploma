@@ -1,4 +1,4 @@
-package main.java.com.bachelors.speecher.sox;
+package com.bachelors.speecher.sox;
 
 public class WrongParametersException extends Exception {
     public WrongParametersException(String s) {
