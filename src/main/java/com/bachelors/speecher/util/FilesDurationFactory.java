@@ -1,4 +1,4 @@
-package main.java.com.bachelors.speecher.util;
+package com.bachelors.speecher.util;
 
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioInputStream;
