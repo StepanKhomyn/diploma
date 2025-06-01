@@ -1,93 +1,68 @@
-package main.java.com.bachelors.speecher.service.speech;
+package com.bachelors.speecher.service.speech;
 
+
+import com.bachelors.speecher.sox.Sox;
 import com.bachelors.speecher.util.Logger;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
+import org.springframework.web.socket.BinaryMessage;
+import org.springframework.web.socket.CloseStatus;
+import org.springframework.web.socket.WebSocketSession;
+import org.springframework.web.socket.handler.BinaryWebSocketHandler;
 
-@Service
-public class SpeechDetectionService {
-    private static final int SAMPLE_RATE = 8000;
-    private static final int SAMPLE_SIZE_IN_BITS = 16;
-    private static final int CHANNELS = 1;
-    private static final boolean SIGNED = true;
-    private static final boolean BIG_ENDIAN = true;
-    private static final int BYTES_PER_SECOND = SAMPLE_RATE * 8 * CHANNELS / 8;
-    private static final int SILENCE_THRESHOLD = 1800;
-    private static final int SPEECH_THRESHOLD = 4500;
-    private static final int SILENCE_DURATION_SECONDS = 3;
-    private boolean IS_SILENCE_DETECTED = false;
-    private boolean IS_SPEECH_DETECTED = false;
+import java.io.*;
+import java.util.UUID;
 
-    public boolean detectSilence(byte[] buffer) {
-        int numBytesPerFrame = SAMPLE_SIZE_IN_BITS / 8 * CHANNELS;
-        int numFramesPerSecond = SAMPLE_RATE / CHANNELS;
-        int numFramesPerDuration = numFramesPerSecond * SILENCE_DURATION_SECONDS;
-        int numFramesOfSilence = 0;
-        boolean silenceDetected = false;
-        for (int i = 0; i < buffer.length; i += numBytesPerFrame) {
-            int amplitude = getAmplitude(buffer, i);
-            if (amplitude < SILENCE_THRESHOLD) {
-                numFramesOfSilence++;
-                if (numFramesOfSilence >= numFramesPerDuration) {
-                    silenceDetected = true;
-                    break;
-                }
-            } else {
-                numFramesOfSilence = 0;
-            }
-        }
-        if (IS_SILENCE_DETECTED && !IS_SPEECH_DETECTED) {
-            if (silenceDetected) {
-                System.out.println("====================");
-                Logger.log("Silence of " + SILENCE_DURATION_SECONDS + " seconds detected.");
-                System.out.println("====================");
-                IS_SILENCE_DETECTED = true;
-                IS_SPEECH_DETECTED = false;
-                return true;
-            } else {
-                IS_SILENCE_DETECTED = false;
-                return false;
-            }
-        }
-        return false;
+
+@Component
+public class SpeechVoiceReceiverService extends BinaryWebSocketHandler {
+
+    private static ByteArrayOutputStream voiceBuffer;
+    private boolean asteriskConnectionState = true;
+
+    public SpeechVoiceReceiverService() {
+        voiceBuffer = new ByteArrayOutputStream();
     }
 
-    public boolean detectSpeech(byte[] buffer) {
-        int numBytesPerFrame = SAMPLE_SIZE_IN_BITS / 8 * CHANNELS;
-        int numFramesPerSecond = SAMPLE_RATE / CHANNELS;
-        int numFramesPerDuration = numFramesPerSecond * 2;
-        int numFramesOfSilence = 0;
-        boolean speechDetected = false;
-        for (int i = 0; i < buffer.length; i += numBytesPerFrame) {
-            int amplitude = getAmplitude(buffer, i);
-            if (amplitude > SPEECH_THRESHOLD) {
-                numFramesOfSilence++;
-                if (numFramesOfSilence >= numFramesPerDuration) {
-                    speechDetected = true;
-                    break;
-                }
-            } else {
-                numFramesOfSilence = 0;
-            }
-        }
-        if (speechDetected) {
-            System.out.println("====================");
-            Logger.log("Speech of " + 2 + " seconds detected.");
-            System.out.println("====================");
-            IS_SILENCE_DETECTED = false;
-            IS_SPEECH_DETECTED = true;
-            return true;
-        } else {
-            IS_SILENCE_DETECTED = true;
-            IS_SPEECH_DETECTED = false;
-            return false;
-        }
+    @Override
+    public void afterConnectionEstablished(WebSocketSession session) {
+        Logger.log("Asterisk broadcaster connected using websocket");
+        asteriskConnectionState = true;
     }
 
-    private static int getAmplitude(byte[] audioData, int offset) {
-        int amplitude = 0;
-        if (SAMPLE_SIZE_IN_BITS == 16) {
-            amplitude = (short) (((audioData[offset + 1] & 0xff) << 8) | (audioData[offset] & 0xff));
+    @Override
+    protected void handleBinaryMessage(WebSocketSession session, BinaryMessage message) {
+        voiceBuffer.writeBytes(message.getPayload().array());
+    }
+
+    @Override
+    public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
+        asteriskConnectionState = false;
+        String uuid = UUID.randomUUID().toString();
+        try (FileOutputStream outputStream = new FileOutputStream(uuid.concat(".raw"))) {
+            outputStream.write(voiceBuffer.toByteArray());
         }
-        return Math.abs(amplitude);
+        Sox sox = new Sox("/usr/local/bin/sox");
+        sox.argument("-w")
+                .argument("-s")
+                .argument("-r 8000")
+                .argument("-c 1")
+                .inputFile(uuid.concat(".raw"))
+                .outputFile(uuid.concat(".wav"))
+                .execute();
+        Logger.log("Asterisk broadcaster disconnected using websocket");
+        session.close(status);
+        voiceBuffer.reset();
+    }
+
+    public boolean isAsteriskConnectionState() {
+        return asteriskConnectionState;
+    }
+
+    public ByteArrayOutputStream getVoiceBuffer() {
+        return voiceBuffer;
+    }
+
+    public void setVoiceBuffer() {
+        voiceBuffer = new ByteArrayOutputStream();
     }
 }
