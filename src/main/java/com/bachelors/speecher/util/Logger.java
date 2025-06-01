@@ -1,4 +1,4 @@
-package main.java.com.bachelors.speecher.util;
+package com.bachelors.speecher.util;
 
 public class Logger {
     public static void log(String message) {
