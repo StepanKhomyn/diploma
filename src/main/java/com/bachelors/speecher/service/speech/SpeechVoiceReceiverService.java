@@ -1,4 +1,5 @@
-package main.java.com.bachelors.speecher.service.speech;
+package com.bachelors.speecher.service.speech;
+
 
 import com.bachelors.speecher.sox.Sox;
 import com.bachelors.speecher.util.Logger;
