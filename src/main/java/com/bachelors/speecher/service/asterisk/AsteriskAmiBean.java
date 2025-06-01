@@ -1,4 +1,4 @@
-package main.java.com.bachelors.speecher.service.asterisk;
+package com.bachelors.speecher.service.asterisk;
 
 import com.bachelors.speecher.util.Logger;
 import org.asteriskjava.live.ManagerCommunicationException;
