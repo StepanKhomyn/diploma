@@ -1,4 +1,4 @@
-package main.java.com.bachelors.speecher.configuration;
+package com.bachelors.speecher.configuration;
 
 import com.bachelors.speecher.service.speech.SpeechVoiceReceiverService;
 import org.springframework.context.annotation.Configuration;
