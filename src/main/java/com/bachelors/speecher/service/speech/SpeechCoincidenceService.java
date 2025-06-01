@@ -1,4 +1,4 @@
-package main.java.com.bachelors.speecher.service.speech;
+package com.bachelors.speecher.service.speech;
 
 import org.springframework.stereotype.Service;
 
